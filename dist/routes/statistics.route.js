@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const statistics_controller_1 = require("../controllers/statistics.controller");
+const asyncHandler_1 = require("../utils/asyncHandler");
+const router = (0, express_1.Router)();
+const statisticsController = new statistics_controller_1.StatisticsController();
+router.get('/supplier-stats', (0, asyncHandler_1.asyncHandler)(statisticsController.getSupplierStats));
+router.get('/import-vouchers', (0, asyncHandler_1.asyncHandler)(statisticsController.getImportVouchersBySupplier));
+router.get('/import-vouchers/:id', (0, asyncHandler_1.asyncHandler)(statisticsController.getImportVoucherDetails));
+exports.default = router;
