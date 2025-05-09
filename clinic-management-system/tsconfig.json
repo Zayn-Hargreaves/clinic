@@ -11,7 +11,10 @@
         "strictPropertyInitialization": false,
         "experimentalDecorators": true,
         "emitDecoratorMetadata": true,
-        "skipLibCheck": true
+        "skipLibCheck": true,
+        "moduleResolution": "node",
+        "resolveJsonModule": true,
+        "allowSyntheticDefaultImports": true
     },
     "include": [
         "src/**/*"

@@ -3,45 +3,42 @@ import { Supplier } from '../models/supplier.model';
 import { DatabaseConnection } from '../patterns/singleton/database';
 import { NotFoundException } from '../utils/exceptions';
 import { MedicineSupplierFactory, EquipmentSupplierFactory } from '../patterns/factory/supplierFactory';
-import { ExternalSupplierAdapter, ExternalSupplierData, SupplierData } from '../patterns/adapter/external-supplier.adapter';
-import { InventorySubject, LowStockEmailObserver } from '../patterns/observer/inventoryObserver';
-import { ImportProcessFacade } from '../patterns/facade/importFacade';
-import { MedicalSupplyRepository } from './medicalSupply.repository';
+import { ExternalSupplierAdapter, ExternalSupplierData } from '../patterns/adapter/external-supplier.adapter';
 
 export class SupplierRepository {
   private repository: Repository<Supplier>;
-  private inventorySubject: InventorySubject;
-  private importFacade: ImportProcessFacade;
 
   constructor() {
     this.repository = DatabaseConnection.getInstance().getDataSource().getRepository(Supplier);
-    this.inventorySubject = new InventorySubject();
-    this.inventorySubject.addObserver(new LowStockEmailObserver());
-    this.importFacade = new ImportProcessFacade(this, new MedicalSupplyRepository());
   }
 
+  // Lấy tất cả nhà cung cấp
   async findAll(): Promise<Supplier[]> {
-    return this.repository.find();
+    const supplier = await this.repository.find()
+    return supplier
   }
 
-  async findById(id: number): Promise<Supplier> {
+  // Lấy nhà cung cấp theo ID
+  async findById(id: number): Promise<Supplier | null> {
     const supplier = await this.repository.findOne({ where: { id } });
-    if (!supplier) {
-      throw new NotFoundException('Supplier not found');
-    }
+    if (!supplier) throw new NotFoundException('Supplier not found');
     return supplier;
   }
 
-  async findByName(name: string|undefined): Promise<Supplier[]> {
-    if(!name){
-      throw new NotFoundException("Supplier not found")
-    }
+  async find(): Promise<Supplier[]> {
+    return this.repository
+      .createQueryBuilder('supplier')
+      .getMany();
+  }
+  // Tìm kiếm nhà cung cấp theo tên
+  async findByName(name: string): Promise<Supplier[]> {
     return this.repository
       .createQueryBuilder('supplier')
       .where('supplier.name LIKE :name', { name: `%${name}%` })
       .getMany();
   }
 
+  // Lấy danh sách nhà cung cấp đang hoạt động
   async findActiveSuppliers(): Promise<Supplier[]> {
     return this.repository
       .createQueryBuilder('supplier')
@@ -49,43 +46,34 @@ export class SupplierRepository {
       .getMany();
   }
 
+  // Tạo mới nhà cung cấp sử dụng Factory pattern
   async createSupplier(data: Partial<Supplier>, type: 'Medicine' | 'Equipment'): Promise<Supplier> {
-    const factory = type === 'Medicine' ? new MedicineSupplierFactory() : new EquipmentSupplierFactory();
+    const factory =
+      type === 'Medicine'
+        ? new MedicineSupplierFactory()
+        : new EquipmentSupplierFactory();
     const supplier = factory.createSupplier(data);
-    const savedSupplier = await this.repository.save(supplier);
-    await this.notifyInventoryChange(savedSupplier);
-    return savedSupplier;
+    return this.repository.save(supplier);
   }
 
+  // Tạo mới nhà cung cấp từ dữ liệu external (Adapter pattern)
   async createFromExternalData(externalData: ExternalSupplierData, type: 'Medicine' | 'Equipment'): Promise<Supplier> {
     const supplierData = ExternalSupplierAdapter.toSupplierData(externalData);
     return this.createSupplier(supplierData, type);
   }
 
+  // Cập nhật nhà cung cấp
   async updateSupplier(id: number, data: Partial<Supplier>): Promise<Supplier> {
     const supplier = await this.findById(id);
+    if (!supplier) throw new NotFoundException('Supplier not found');
     Object.assign(supplier, data);
-    const updatedSupplier = await this.repository.save(supplier);
-    await this.notifyInventoryChange(updatedSupplier);
-    return updatedSupplier;
+    return this.repository.save(supplier);
   }
 
+  // Xóa nhà cung cấp
   async deleteSupplier(id: number): Promise<void> {
     const supplier = await this.findById(id);
+    if (!supplier) throw new NotFoundException('Supplier not found');
     await this.repository.remove(supplier);
-    await this.notifyInventoryChange(supplier);
-  }
-
-  async processImport(supplierId: number, items: { supplyId: number; quantity: number }[]): Promise<any> {
-    return this.importFacade.processImport(supplierId, items);
-  }
-
-  private async notifyInventoryChange(supplier: Supplier): Promise<void> {
-    const supplies = await this.repository
-      .createQueryBuilder('supplier')
-      .relation(Supplier, 'supplies')
-      .of(supplier)
-      .loadMany();
-    supplies.forEach((supply) => this.inventorySubject.notifyObservers(supply));
   }
 }

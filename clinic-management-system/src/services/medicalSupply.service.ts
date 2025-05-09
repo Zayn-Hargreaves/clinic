@@ -1,26 +1,45 @@
-import { Repository } from 'typeorm';
+import { MedicalSupplyRepository } from '../repositories/medicalSupply.repository';
 import { MedicalSupply } from '../models/medicalSupply.model';
-import { DatabaseConnection } from '../patterns/singleton/database';
-import { NotFoundException } from '../utils/exceptions';
 
-export class MedicalSupplyRepository {
-    private repository: Repository<MedicalSupply>;
+export class MedicalSupplyService {
+    private repository: MedicalSupplyRepository;
 
     constructor() {
-        this.repository = DatabaseConnection.getInstance().getDataSource().getRepository(MedicalSupply);
+        this.repository = new MedicalSupplyRepository();
     }
 
-    async findById(id: number): Promise<MedicalSupply> {
-        const supply = await this.repository.findOne({ where: { id } });
-        if (!supply) {
-            throw new NotFoundException('Medical supply not found');
-        }
-        return supply;
+    // Lấy vật tư y tế theo ID
+    async getById(id: number): Promise<MedicalSupply> {
+        return this.repository.findById(id);
     }
 
+    // Cập nhật tồn kho vật tư y tế
     async updateStock(id: number, quantity: number): Promise<MedicalSupply> {
-        const supply = await this.findById(id);
-        supply.stockQuantity += quantity;
-        return this.repository.save(supply);
+        return this.repository.updateStock(id, quantity);
+    }
+
+    // Lấy danh sách vật tư y tế theo nhà cung cấp
+    async getBySupplier(supplierId: number): Promise<MedicalSupply[]> {
+        return this.repository.findBySupplier(supplierId);
+    }
+
+    // Lấy tất cả vật tư y tế
+    async getAll(): Promise<MedicalSupply[]> {
+        return this.repository.findAll();
+    }
+
+    // Tạo mới vật tư y tế
+    async createMedicalSupply(data: Partial<MedicalSupply>): Promise<MedicalSupply> {
+        return this.repository.createMedicalSupply(data);
+    }
+
+    // Cập nhật vật tư y tế
+    async updateMedicalSupply(id: number, data: Partial<MedicalSupply>): Promise<MedicalSupply> {
+        return this.repository.updateMedicalSupply(id, data);
+    }
+
+    // Xóa vật tư y tế
+    async deleteMedicalSupply(id: number): Promise<void> {
+        return this.repository.deleteMedicalSupply(id);
     }
 }

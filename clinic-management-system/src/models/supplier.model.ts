@@ -11,13 +11,15 @@ export class Supplier {
     @Column()
     name: string;
 
-    @Column()
+    @Column({ default: 'Chưa cập nhật' })
     contactInfo: string;
 
-    @Column()
+    @Column({default:"active"})
     status: string;
 
-    @Column()
+    @Column({
+        default: 'khac',
+    })
     type: string;
 
     @OneToMany(() => MedicalSupply, (supply) => supply.supplier)

@@ -1,67 +1,87 @@
 import { Request, Response, NextFunction } from 'express';
-import { SupplierService } from '../services/supplier.service';
+import { SupplierFacade } from '../patterns/facade/supplierFacade';
 import { asyncHandler } from '../utils/asyncHandler';
 import { BadRequestException } from '../utils/exceptions';
 
+const supplierFacade = new SupplierFacade();
+
 export class SupplierController {
-    private readonly supplierService: SupplierService;
+  // Lấy tất cả nhà cung cấp
+  getAllSuppliers = asyncHandler(async (req: Request, res: Response) => {
+    const suppliers = await supplierFacade.getAllSuppliers();
+    return res.status(200).json({ success: true, data: suppliers });
+  });
 
-    constructor() {
-        this.supplierService = new SupplierService();
-    }
+  // Tìm kiếm theo tên
+  searchSuppliers = asyncHandler(async (req: Request, res: Response) => {
+    const name = req.query.name as string;
+    if (!name) throw new BadRequestException('name query parameter is required');
+    const suppliers = await supplierFacade.searchSuppliers(name);
+    return res.status(200).json({ success: true, data: suppliers });
+  });
 
-    getAllSuppliers = asyncHandler(async (req: Request, res: Response, next: NextFunction): Promise<Response> => {
-        const suppliers = await this.supplierService.getAllSuppliers();
-        return res.status(200).json({ success: true, data: suppliers });
-    });
+  // Lấy chi tiết 1 supplier (kèm supplies, medicines, vouchers)
+  getSupplierById = asyncHandler(async (req: Request, res: Response) => {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) throw new BadRequestException('Invalid supplier ID');
+    const detail = await supplierFacade.getSupplierDetail(id);
+    return res.status(200).json({ success: true, data: detail });
+  });
 
-    getSupplierById = asyncHandler(async (req: Request, res: Response, next: NextFunction): Promise<Response> => {
-        const id = req.params.id;
-        const idNum = parseInt(id);
-        if (isNaN(idNum)) {
-            throw new BadRequestException('Invalid supplier ID');
-        }
-        const supplier = await this.supplierService.getSupplierById(idNum);
-        return res.status(200).json({ success: true, data: supplier });
-    });
+  // Tạo mới supplier
+  createSupplier = asyncHandler(async (req: Request, res: Response) => {
+    const { name, contactInfo, type, status } = req.body;
+    console.log(req.body)
+    if (!name || !contactInfo || !type)
+      throw new BadRequestException('name, contactInfo, and type are required');
+    const supplier = await supplierFacade.createSupplier(
+      { name, contactInfo, status: status || 'active' },
+      type as 'Medicine' | 'Equipment'
+    );
+    return res.status(201).json({ success: true, data: supplier });
+  });
 
-    createSupplier = asyncHandler(async (req: Request, res: Response, next: NextFunction): Promise<Response> => {
-        const { name, contactInfo, type, status } = req.body;
-        if (!name || !contactInfo || !type) {
-            throw new BadRequestException('name, contactInfo, and type are required');
-        }
-        const supplierData = { name, contactInfo, status: status || 'active' };
-        const supplier = await this.supplierService.createSupplier(supplierData, type as 'Medicine' | 'Equipment');
-        return res.status(201).json({ success: true, data: supplier });
-    });
+  // Tạo mới từ external API (nếu có)
+  createFromExternal = asyncHandler(async (req: Request, res: Response) => {
+    const { externalData, type } = req.body;
+    if (!externalData || !type)
+      throw new BadRequestException('externalData and type are required');
+    const supplier = await supplierFacade.createFromExternalApi(externalData, type);
+    return res.status(201).json({ success: true, data: supplier });
+  });
 
-    updateSupplier = asyncHandler(async (req: Request, res: Response, next: NextFunction): Promise<Response> => {
-        const id = req.params.id;
-        const idNum = parseInt(id);
-        if (isNaN(idNum)) {
-            throw new BadRequestException('Invalid supplier ID');
-        }
-        const supplierData = req.body;
-        const supplier = await this.supplierService.updateSupplier(idNum, supplierData);
-        return res.status(200).json({ success: true, data: supplier });
-    });
+  // Cập nhật supplier
+  updateSupplier = asyncHandler(async (req: Request, res: Response) => {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) throw new BadRequestException('Invalid supplier ID');
+    const supplier = await supplierFacade.updateSupplier(id, req.body);
+    return res.status(200).json({ success: true, data: supplier });
+  });
 
-    deleteSupplier = asyncHandler(async (req: Request, res: Response, next: NextFunction): Promise<Response> => {
-        const id = req.params.id;
-        const idNum = parseInt(id);
-        if (isNaN(idNum)) {
-            throw new BadRequestException('Invalid supplier ID');
-        }
-        await this.supplierService.deleteSupplier(idNum);
-        return res.status(200).json({ success: true, message: 'Supplier deleted successfully' });
-    });
+  // Xóa supplier (có kiểm tra liên kết)
+  deleteSupplier = asyncHandler(async (req: Request, res: Response) => {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) throw new BadRequestException('Invalid supplier ID');
+    await supplierFacade.deleteSupplier(id);
+    return res.status(200).json({ success: true, message: 'Supplier deleted successfully' });
+  });
 
-    searchSuppliers = asyncHandler(async (req: Request, res: Response, next: NextFunction): Promise<Response> => {
-        const name = req.query.name;
-        if (!name) {
-            throw new BadRequestException('name query parameter is required');
-        }
-        const suppliers = await this.supplierService.searchSuppliers(name as string);
-        return res.status(200).json({ success: true, data: suppliers });
-    });
+  // Lấy danh sách active supplier
+  getActiveSuppliers = asyncHandler(async (req: Request, res: Response) => {
+    const suppliers = await supplierFacade.getActiveSuppliers();
+    return res.status(200).json({ success: true, data: suppliers });
+  });
+
+  // Thống kê nhập vật tư/thuốc theo supplier
+  getImportStats = asyncHandler(async (req: Request, res: Response) => {
+    const supplierId = parseInt(req.params.id);
+    if (isNaN(supplierId)) throw new BadRequestException('Invalid supplier ID');
+    const { startDate, endDate } = req.query;
+    const stats = await supplierFacade.getImportStats(
+      supplierId,
+      startDate as string | undefined,
+      endDate as string | undefined
+    );
+    return res.status(200).json({ success: true, data: stats });
+  });
 }

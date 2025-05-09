@@ -30,11 +30,12 @@ export class ImportDetail {
     @JoinColumn({ name: 'import_voucher_id' })
     importVoucher: ImportVoucher;
 
-    @ManyToOne(() => MedicalSupply, { nullable: true })
+    // Không tạo FK ở DB, chỉ dùng cho truy vấn dễ dàng
+    @ManyToOne(() => MedicalSupply, { nullable: true, createForeignKeyConstraints: false })
     @JoinColumn({ name: 'item_id', referencedColumnName: 'id' })
-    medicalSupply: MedicalSupply;
+    medicalSupply?: MedicalSupply;
 
-    @ManyToOne(() => Medicine, { nullable: true })
+    @ManyToOne(() => Medicine, { nullable: true, createForeignKeyConstraints: false })
     @JoinColumn({ name: 'item_id', referencedColumnName: 'id' })
-    medicine: Medicine;
+    medicine?: Medicine;
 }

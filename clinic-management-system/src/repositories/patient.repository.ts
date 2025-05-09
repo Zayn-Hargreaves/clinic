@@ -1,13 +1,13 @@
 import { Repository } from 'typeorm';
 import { Patient } from '../models/patient.model';
-import { AppDataSource } from '../data-source';
 import { NotFoundException } from '../utils/exceptions';
+import { DatabaseConnection } from '../patterns/singleton/database';
 
 export class PatientRepository {
     private repository: Repository<Patient>;
 
     constructor() {
-        this.repository = AppDataSource.getRepository(Patient);
+        this.repository = DatabaseConnection.getInstance().getDataSource().getRepository(Patient);
     }
 
     async findById(id: number): Promise<Patient> {

@@ -1,4 +1,4 @@
-import { ImportProcessFacade } from "../facade/importFacade";
+import { ImportProcessFacade } from '../../patterns/facade/importFacade';
 
 export abstract class ReportTemplate {
     async generateReport(params: any): Promise<any> {
@@ -23,6 +23,7 @@ export class SupplierStatsReport extends ReportTemplate {
 
     protected processData(data: any) {
         return data.map((stat: any) => ({
+            supplierId: stat.supplier.id,
             supplierName: stat.supplier.name,
             totalVouchers: stat.totalVouchers,
             totalValue: stat.totalValue,

@@ -26,5 +26,33 @@ export class MedicalSupplyRepository {
         await this.repository.save(supply);
         this.inventorySubject.notifyObservers(supply);
         return supply;
-      }
+    }
+    // Lấy tất cả vật tư y tế
+    async findAll(): Promise<MedicalSupply[]> {
+        return this.repository.find();
+    }
+
+    // Lấy vật tư y tế theo nhà cung cấp
+    async findBySupplier(supplierId: number): Promise<MedicalSupply[]> {
+        return this.repository.find({ where: { supplierId } });
+    }
+
+    // Tạo mới vật tư y tế
+    async createMedicalSupply(data: Partial<MedicalSupply>): Promise<MedicalSupply> {
+        const supply = this.repository.create(data);
+        return this.repository.save(supply);
+    }
+
+    // Cập nhật vật tư y tế
+    async updateMedicalSupply(id: number, data: Partial<MedicalSupply>): Promise<MedicalSupply> {
+        const supply = await this.findById(id);
+        Object.assign(supply, data);
+        return this.repository.save(supply);
+    }
+
+    // Xóa vật tư y tế
+    async deleteMedicalSupply(id: number): Promise<void> {
+        const supply = await this.findById(id);
+        await this.repository.remove(supply);
+    }
 }

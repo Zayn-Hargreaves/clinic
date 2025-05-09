@@ -1,13 +1,11 @@
 import { DataSource } from 'typeorm';
 import * as dotenv from 'dotenv';
-import { Patient } from '../../models/patient.model';
-import { Doctor } from '../../models/doctor.model';
-import { Appointment } from '../../models/appointment.model';
 import { Supplier } from '../../models/supplier.model';
 import { Medicine } from '../../models/medicine.model';
 import { MedicalSupply } from '../../models/medicalSupply.model';
 import { ImportVoucher } from '../../models/importVoucher.model';
 import { ImportDetail } from '../../models/importDetail.model';
+
 dotenv.config();
 
 export class DatabaseConnection {
@@ -17,10 +15,13 @@ export class DatabaseConnection {
     private constructor() {
         this.dataSource = new DataSource({
             type: 'mysql',
-            url: process.env.DATABASE_URL,
-            entities: [__dirname + '/../**/*.entity.{js,ts}'],
-            migrations: ['src/migrations/*.ts'],
-            synchronize: false,
+            host: process.env.DB_HOST || 'mysql',  // hoặc 'localhost'
+            port: 3306,
+            username: 'admin',
+            password: '12345',
+            database: 'clinic_db',
+            entities: [Supplier, Medicine, MedicalSupply, ImportVoucher, ImportDetail],
+            synchronize: true,
             logging: true,
         });
     }
@@ -28,7 +29,6 @@ export class DatabaseConnection {
     public static getInstance(): DatabaseConnection {
         if (!DatabaseConnection.instance) {
             DatabaseConnection.instance = new DatabaseConnection();
-            console.log(DatabaseConnection.instance)
         }
         return DatabaseConnection.instance;
     }

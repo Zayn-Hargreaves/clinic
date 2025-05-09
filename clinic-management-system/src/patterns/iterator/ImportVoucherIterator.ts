@@ -10,7 +10,7 @@ export class ImportVoucherIterator {
     }
 
     private async loadVouchers(supplierId: number, limit: number) {
-        this.vouchers = (await this.repository.findBySupplier(supplierId, limit));
+        this.vouchers = (await this.repository.findBySupplier(supplierId, undefined, undefined,1,limit));
     }
 
     hasNext(): boolean {

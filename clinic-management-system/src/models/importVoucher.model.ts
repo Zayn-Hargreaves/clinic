@@ -16,7 +16,7 @@ export class ImportVoucher {
     @Column({ name: 'supplier_id' })
     supplierId: number;
 
-    @Column({ name: 'employee_id' })
+    @Column({ name: 'employee_id', default:1 })
     employeeId: number;
 
     @Column({ default: 'pending' })
